@@ -86,7 +86,7 @@ runs:
         echo 'EOF' >> $GITHUB_OUTPUT
       shell: bash
       env:
-        OPENAI_API_KEY: ${{ inputs.openrouter-key }}
+        OPENROUTER_API_KEY: ${{ inputs.openrouter-key }}
         MODEL: ${{ inputs.model }}
         PROMPT: ${{ inputs.prompt }}
         MAX_LENGTH: ${{ inputs.max-length }}

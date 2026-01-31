@@ -2,11 +2,39 @@ import os
 import sys
 import requests
 import json
+import ast
+
+def analyze_ast(code):
+    issues = []
+
+    try:
+        tree = ast.parse(code)
+    except Exception:
+        return ["Could not parse code"]
+
+    for node in ast.walk(tree):
+
+        # long functions
+        if isinstance(node, ast.FunctionDef):
+            if len(node.body) > 40:
+                issues.append(f"Function '{node.name}' too long (>40 lines)")
+
+        # print statements
+        if isinstance(node, ast.Call):
+            if hasattr(node.func, "id") and node.func.id == "print":
+                issues.append("Avoid print(), use logging")
+
+        # bare except
+        if isinstance(node, ast.ExceptHandler):
+            if node.type is None:
+                issues.append("Bare except detected")
+
+    return issues
 
 # ==============================
 # Check API key
 # ==============================
-API_KEY = os.environ.get("OPENAI_API_KEY")
+API_KEY = os.environ.get("OPENROUTER_API_KEY")
 if not API_KEY:
     print("No OpenRouter API key found")
     sys.exit(1)
@@ -19,14 +47,26 @@ max_length = int(os.environ["MAX_LENGTH"])
 # ==============================
 # Read git diff
 # ==============================
-code = sys.stdin.read()
+raw_diff = sys.stdin.read()
+
+code_lines = []
+for line in raw_diff.splitlines():
+    if line.startswith("+") and not line.startswith("+++"):
+        code_lines.append(line[1:])
+
+code = "\n".join(code_lines)
+ast_issues = analyze_ast(code)
 
 prompt = (
     f"Commit title: {commit_title}\n"
     f"Commit message: {commit_message}\n\n"
-    f"{os.environ['PROMPT']}\n\n"
-    f"Code changes:\n```\n{code}\n```"
+    "Static AST analysis:\n"
+    + ("\n".join(ast_issues) if ast_issues else "No structural issues found.")
+    + "\n\nCode changes:\n```\n"
+    + code +
+    "\n```"
 )
+
 
 if len(prompt) > max_length:
     prompt = prompt[:max_length]
@@ -53,7 +93,7 @@ try:
             "max_tokens": 1024
         })
     )
-
+    response.raise_for_status()
     data = response.json()
 
     if "choices" in data:
