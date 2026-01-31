@@ -56,7 +56,11 @@ try:
 
     data = response.json()
 
-    review_text = data["choices"][0]["message"]["content"]
+    if "choices" in data:
+        review_text = data["choices"][0]["message"]["content"]
+    else:
+        review_text = f"OpenRouter error:\n{json.dumps(data, indent=2)}"
+
 
 except Exception as e:
     review_text = f"OpenRouter failed to generate review: {e}"
