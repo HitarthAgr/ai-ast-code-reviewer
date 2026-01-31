@@ -65,7 +65,7 @@ runs:
         echo 'EOF' >> $GITHUB_OUTPUT
       shell: bash
       env:
-        OPENAI_API_KEY: ${{ inputs.openai-key }}
+        OPENROUTER_API_KEY: ${{ inputs.openai-key }}
         MODEL: ${{ inputs.model }}
         PROMPT: ${{ inputs.prompt }}
         MAX_LENGTH: ${{ inputs.max-length }}

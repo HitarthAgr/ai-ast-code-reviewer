@@ -17,11 +17,15 @@ import openai
 import sys
 
 # Set up OpenAI credentials
-if not os.environ.get("OPENAI_API_KEY"):
-    print("No OpenAI API key found")
+if not os.environ.get("OPENROUTER_API_KEY"):
+    print("No OpenRouter API key found")
     sys.exit(1)
 
-client = openai.OpenAI()
+client = openai.OpenAI(
+    api_key=os.environ["OPENROUTER_API_KEY"],
+    base_url="https://openrouter.ai/api/v1"
+)
+
 
 model_engine = os.environ["MODEL"]
 commit_title = os.environ["COMMIT_TITLE"]
