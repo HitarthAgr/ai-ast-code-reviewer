@@ -1,7 +1,7 @@
 # action.yaml
-name: 'OpenRouter Code Review GitHub Action'
-author: Sagi (Sergey) Shnaidman (@sshnaidm)
-description: 'Posts AI code review comments using OpenRouter models to pull requests'
+name: 'Local AI Code Review GitHub Action'
+author: 'AI Code Review'
+description: 'Posts AI code review comments using local Ollama LLM to pull requests - No API keys required'
 
 inputs:
   github-token:
@@ -9,17 +9,13 @@ inputs:
     required: false
     default: ${{ github.token }}
 
-  model:
-    description: 'OpenRouter model name'
+  ollama-model:
+    description: 'Ollama model name for code review'
     required: false
-    default: 'mistralai/mistral-small-3.1-24b-instruct:free'
-
-  openrouter-key:
-    description: 'OpenRouter API key'
-    required: true
+    default: 'deepseek-coder:6.7b'
 
   prompt:
-    description: 'Prompt for the AI review'
+    description: 'System prompt for the AI review'
     required: false
     default: |
       Please review the code change below and provide feedback.
@@ -37,7 +33,7 @@ inputs:
   review-title:
     description: 'Title of the review comment'
     required: false
-    default: '# Code Review by OpenRouter'
+    default: '# 🤖 AI Code Review'
 
 outputs:
   results:
@@ -66,16 +62,48 @@ runs:
         python-version: '3.10'
 
     # ---------------------------
-    # Install dependencies
+    # Install Python dependencies
     # ---------------------------
-    - name: Install Dependencies
+    - name: Install Python Dependencies
       run: pip install -r ${{ github.action_path }}/requirements.txt
       shell: bash
 
     # ---------------------------
-    # Run OpenRouter review
+    # Cache Ollama models
     # ---------------------------
-    - name: Run OpenRouter code review
+    - name: Cache Ollama Models
+      uses: actions/cache@v4
+      with:
+        path: ~/.ollama
+        key: ollama-${{ inputs.ollama-model }}
+        restore-keys: |
+          ollama-
+
+    # ---------------------------
+    # Install and Start Ollama
+    # ---------------------------
+    - name: Install and Start Ollama
+      run: |
+        # Install Ollama
+        curl -fsSL https://ollama.com/install.sh | sh
+        
+        # Start Ollama server in background
+        ollama serve &
+        
+        # Wait for server to be ready
+        sleep 5
+        
+        # Pull the model (skipped if cached)
+        echo "Pulling model: ${{ inputs.ollama-model }}"
+        ollama pull ${{ inputs.ollama-model }}
+        
+        echo "Model ready!"
+      shell: bash
+
+    # ---------------------------
+    # Run local AI code review
+    # ---------------------------
+    - name: Run Local AI Code Review
       id: review
       shell: bash
       run: |
@@ -84,7 +112,7 @@ runs:
         # Get changed python files safely
         files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep '\.py$' || true)
 
-        # Review each file individually (better AI accuracy)
+        # Review each file individually
         for file in $files; do
           echo "### Reviewing $file" >> review.txt
           git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- "$file" \
@@ -98,8 +126,8 @@ runs:
         echo 'EOF' >> $GITHUB_OUTPUT
 
       env:
-        OPENROUTER_API_KEY: ${{ inputs.openrouter-key }}
-        MODEL: ${{ inputs.model }}
+        MODEL: ${{ inputs.ollama-model }}
+        OLLAMA_HOST: http://localhost:11434
         PROMPT: ${{ inputs.prompt }}
         MAX_LENGTH: ${{ inputs.max-length }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
@@ -119,5 +147,5 @@ runs:
         reactions: '+1'
 
 branding:
-  icon: 'user-check'
-  color: 'green'
+  icon: 'code'
+  color: 'purple'

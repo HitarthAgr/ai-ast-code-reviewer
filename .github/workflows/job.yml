@@ -1,19 +1,19 @@
 on: [pull_request]
 
 jobs:
-  build:
+  ai-code-review:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: ./
         with:
-          openrouter-key: ${{ secrets.OPENROUTER_API_KEY }}
-          model: tngtech/deepseek-r1t-chimera:free
-          #max-length: 8000
-          # model: 'gpt-4.1-mini'
-          # prompt: 'You are helpful assistant is here to review the code. Please review the code change below and provide feedback.'
+          ollama-model: deepseek-coder:6.7b
+          # Alternative models:
+          # ollama-model: codellama:7b
+          # ollama-model: qwen2.5-coder:7b
+          # max-length: 8000
